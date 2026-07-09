@@ -3,7 +3,9 @@ server.port=8084
 # Kafka Broker
 spring.kafka.bootstrap-servers=localhost:9092
 # Topics (In which message to be received from)
-app.kafka.topic=${KAFKA_TOPIC}
+#app.kafka.topic=${KAFKA_TOPIC}
+app.kafka.order-created.topic=${KAFKA_TOPIC_1}
+app.kafka.order-updated.topic=order-${KAFKA_TOPIC_2}
 # Consumer Group
 spring.kafka.consumer.group-id=${KAFKA_GROUP_ID}
 # Deserializers

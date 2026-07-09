@@ -3,7 +3,9 @@ server.port=8083
 # Kafka Broker
 spring.kafka.bootstrap-servers=localhost:9092
 #Topics(in which message to be sent)
-app.kafka.topic=${KAFKA_TOPIC}
+#app.kafka.topic=${KAFKA_TOPIC}
+app.kafka.order-created.topic=${KAFKA_TOPIC_1}
+app.kafka.order-updated.topic=order-${KAFKA_TOPIC_2}
 # Producer Configuration
 spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
 spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.StringSerializer

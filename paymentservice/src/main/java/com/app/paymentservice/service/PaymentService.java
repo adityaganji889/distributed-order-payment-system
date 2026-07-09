@@ -1,21 +1,21 @@
 package com.app.paymentservice.service;
 
-import org.json.JSONObject;
+import java.util.Optional;
+import java.util.Random;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 //import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.app.paymentservice.dtos.Payment;
 import com.app.paymentservice.dtos.Payment;
 import com.app.paymentservice.entities.PaymentDO;
 import com.app.paymentservice.repositories.PaymentRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.Random;
 
 @Service
 public class PaymentService {
@@ -32,22 +32,24 @@ public class PaymentService {
 	@Autowired
 	private ObjectMapper mapper;
 	
-	@Value("${app.kafka.topic}")
-	private String tempTopic;
+	@Value("${app.kafka.order-updated.topic}")
+	private String orderUpdatedTopic;
 	
 
+	@Transactional
 	public void processTransaction(String topic, Payment payment) throws JsonProcessingException {
 		String requestJSON = mapper.writeValueAsString(payment); //Converted Payment DTO to json request string
 		kafkaTemplate.send(topic, requestJSON);
 		PaymentDO paymentDo = new PaymentDO();
-		paymentDo.setOrderId(null);
-		paymentDo.setPaymentAmount(null);
+		paymentDo.setOrderId(payment.getOrderId());
+		paymentDo.setPaymentAmount(payment.getPaymentAmount());
 		paymentDo.setStatus("Pending");
 		repo.save(paymentDo);
 		System.out.println("Payment sent: " + payment);
 	}
 
-	@Scheduled(fixedRate = 120000)
+//	@Scheduled(fixedRate = 120000) //Every 2 mins
+	@Scheduled(fixedRate = 10000) //Every 10 s
 	public void processPaymentAsync() {
 
 		try {
@@ -58,6 +60,8 @@ public class PaymentService {
 
 			String orderId = String.valueOf(random.nextInt(1,10));
 			
+			System.out.println("orderId:"+orderId);
+			
 			String message = "";
 
 			if (paymentSuccess) {
@@ -67,27 +71,31 @@ public class PaymentService {
 			}
 
 			//Update payment status in PaymentDO table changes starts
-			PaymentDO payment = repo.findByOrderId(orderId);
+			Optional<PaymentDO> payment = repo.findByOrderId(orderId);
 			
-			payment.setStatus(message);
-			
-			repo.save(payment);
+		    if(payment.isPresent()) {
+		    	PaymentDO existingPayment = payment.get();
+		    	if(existingPayment.getStatus().equals("Failed")||existingPayment.getStatus().equals("Pending")) {
+		    		existingPayment.setStatus(message);
+					repo.save(existingPayment);
+					//Sending JSON string as response changes starts
+					Payment paymentResponse = new Payment();
+					paymentResponse.setOrderId(orderId);
+					paymentResponse.setPaymentAmount(existingPayment.getPaymentAmount());
+					paymentResponse.setStatus(message);
+					
+					String responseJSON = mapper.writeValueAsString(paymentResponse);
+					
+//					kafkaTemplate.send(tempTopic, responseJSON);
+					kafkaTemplate.send(orderUpdatedTopic, responseJSON);
+					System.out.println("Kafka event:order updated sent");
+					//Sending JSON string as response changes ends
+		    	}
+		    }
 			//Update payment status in PaymentDO table changes ends
 			
 //			kafkaTemplate.send(tempTopic, orderId+","+message);
-			
-			//Sending JSON string as response changes starts
-			Payment paymentResponse = new Payment();
-			paymentResponse.setOrderId(orderId);
-			paymentResponse.setPaymentAmount(payment.getPaymentAmount());
-			paymentResponse.setStatus(message);
-			
-			String responseJSON = mapper.writeValueAsString(paymentResponse);
-			
-			kafkaTemplate.send(tempTopic, responseJSON);
-			//Sending JSON string as response changes ends
-
-			System.out.println("Kafka event sent");
+		    System.out.println("Kafka event:order updated not sent as either order is not found or it's payment is successfully completed");
 
 		} catch (Exception e) {
 

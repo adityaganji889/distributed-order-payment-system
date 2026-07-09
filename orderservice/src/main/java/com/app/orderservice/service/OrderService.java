@@ -1,10 +1,9 @@
 package com.app.orderservice.service;
 
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.app.orderservice.dto.Order;
 import com.app.orderservice.dto.Payment;
@@ -15,7 +14,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import jakarta.transaction.Transactional;
+
 
 @Service
 public class OrderService {
@@ -32,7 +31,7 @@ public class OrderService {
 	@Autowired
     private PaymentFeignClient paymentFeignClient;
 
-	@KafkaListener(topics = "${app.kafka.topic}", groupId = "${spring.kafka.consumer.group-id}")
+	@KafkaListener(topics = { "${app.kafka.order-created.topic}", "${app.kafka.order-updated.topic}" }, groupId = "${spring.kafka.consumer.group-id}")
 	public void consumeOrder(String payment) throws JsonMappingException, JsonProcessingException {
 		System.out.println("Received payment: " + payment);
 //		String[] arr = payment.split(",");
@@ -67,7 +66,8 @@ public class OrderService {
 		orderDo.setOrderName(order.getOrderName());
 		orderDo.setItemName(order.getItemName());
 		orderDo.setItemType(order.getItemType());
-		orderDo.setStatus("success");
+		orderDo.setPaymentAmount(order.getPaymentAmount());
+		orderDo.setStatus("Pending");
 		repo.save(orderDo);
 		System.out.println("Order saved successfully.");
 //		String url = "http://localhost:8083/payments/process?payment=" + order.toString();
