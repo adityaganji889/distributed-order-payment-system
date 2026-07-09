@@ -1,0 +1,59 @@
+spring.application.name=paymentservice
+server.port=8083
+# Kafka Broker
+spring.kafka.bootstrap-servers=localhost:9092
+#Topics(in which message to be sent)
+app.kafka.topic=${KAFKA_TOPIC}
+# Producer Configuration
+spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
+spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.StringSerializer
+# Database properties
+# ===============================
+
+# MySQL Database Configuration
+
+# ===============================
+
+spring.datasource.url=jdbc:mysql://localhost:<databaseport>/<databasename>?useSSL=false&serverTimezone=UTC //Can change based on database used
+
+spring.datasource.username=${DB_HOST_NAME}
+
+spring.datasource.password=${DB_PASSWORD}
+
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver //Equivalent database driver
+
+ 
+
+# ===============================
+
+# JPA / Hibernate Configuration
+
+# ===============================
+
+spring.jpa.hibernate.ddl-auto=update
+
+spring.jpa.show-sql=true
+
+spring.jpa.properties.hibernate.format_sql=true
+
+ 
+
+# MySQL Dialect
+
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect //Equivalent Database Dialect for JPQL Query
+
+ 
+
+# ===============================
+
+# Connection Pool (HikariCP)
+
+# ===============================
+
+spring.datasource.hikari.maximum-pool-size=10
+
+spring.datasource.hikari.minimum-idle=5
+
+spring.datasource.hikari.idle-timeout=30000
+
+spring.datasource.hikari.connection-timeout=20000
