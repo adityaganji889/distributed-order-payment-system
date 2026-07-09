@@ -2,17 +2,23 @@ package com.app.orderservice.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.listener.ListenerExecutionFailedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.app.orderservice.dto.Order;
 import com.app.orderservice.dto.Payment;
 import com.app.orderservice.entities.OrderDO;
+import com.app.orderservice.exceptionhandlers.KafkaConsumerCustomException;
 import com.app.orderservice.feignclients.PaymentFeignClient;
 import com.app.orderservice.repositories.OrderRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import feign.FeignException;
+import feign.RetryableException;
 
 
 
@@ -54,13 +60,14 @@ public class OrderService {
 				if(status.equals("Pending")) {
 					System.out.println("Payment Pending for order id:"+orderId);
 				}
-		} catch (Exception e) {
+		} catch (ListenerExecutionFailedException e) {
 			System.out.println("Exception occured:" + e.getMessage());
+			throw new KafkaConsumerCustomException(e.getMessage());
 		}
 	}
 
 	@Transactional
-	public String orderProcessing(Order order) {
+	public String orderProcessing(Order order) throws FeignException,RetryableException,TransactionSystemException{
 		OrderDO orderDo = new OrderDO();
 		orderDo.setOrderId(order.getOrderId());
 		orderDo.setOrderName(order.getOrderName());

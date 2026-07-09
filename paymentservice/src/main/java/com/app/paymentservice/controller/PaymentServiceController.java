@@ -2,13 +2,16 @@ package com.app.paymentservice.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.app.paymentservice.dtos.Payment;
+import com.app.paymentservice.exceptionhandlers.KafkaProducerCustomException;
 import com.app.paymentservice.service.PaymentService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 @RestController
 @RequestMapping("/payments")
@@ -26,14 +29,8 @@ public class PaymentServiceController {
 //	@GetMapping("/process")
 	@PostMapping("/process")
 //	public String processPayment(@RequestParam("payment") String payment) {
-	public String processPayment(@RequestBody Payment payment) {
-		try {
-			service.processTransaction(orderCreatedTopic,payment);	
-		}
-		catch(Exception e) {
-			System.out.println("Exception occurred:"+e.getMessage());
-			return "Error occurred in Payment";
-		}
+	public String processPayment(@RequestBody Payment payment) throws JsonProcessingException, KafkaProducerCustomException, TransactionSystemException {
+		service.processTransaction(orderCreatedTopic,payment);	
 		return "Payment Processed Successfully";
 	}
 }
