@@ -20,6 +20,9 @@ import com.app.paymentservice.repositories.PaymentRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 public class PaymentService {
 
@@ -37,6 +40,8 @@ public class PaymentService {
 
 	@Value("${app.kafka.order-updated.topic}")
 	private String orderUpdatedTopic;
+	
+	private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
 
 	@Transactional
 	public void processTransaction(String topic, Payment payment) throws JsonProcessingException, TransactionSystemException {
@@ -48,9 +53,11 @@ public class PaymentService {
 			paymentDo.setPaymentAmount(payment.getPaymentAmount());
 			paymentDo.setStatus("Pending");
 			repo.save(paymentDo);
-			System.out.println("Payment sent: " + payment);
+			logger.info("Payment sent: " + payment);
+//			System.out.println("Payment sent: " + payment);
 		} catch (KafkaProducerException ex) {
-			System.out.println("Failed to send message" + ex.getMessage());
+			logger.error("Failed to send message" + ex.getMessage());
+//			System.out.println("Failed to send message" + ex.getMessage());
 			throw new KafkaProducerCustomException("Unable to publish message due to reason:" + ex.getMessage());
 		}
 	}
@@ -67,7 +74,8 @@ public class PaymentService {
 
 			String orderId = String.valueOf(random.nextInt(1, 10));
 
-			System.out.println("orderId:" + orderId);
+//			System.out.println("orderId:" + orderId);
+			logger.info("orderId:" + orderId);
 
 			String message = "";
 
@@ -95,18 +103,20 @@ public class PaymentService {
 
 //					kafkaTemplate.send(tempTopic, responseJSON);
 					kafkaTemplate.send(orderUpdatedTopic, responseJSON);
-					System.out.println("Kafka event:order updated sent");
+//					System.out.println("Kafka event:order updated sent");
+					logger.info("Kafka event:order updated sent");
+					return;
 					// Sending JSON string as response changes ends
 				}
 			}
 			// Update payment status in PaymentDO table changes ends
 
 //			kafkaTemplate.send(tempTopic, orderId+","+message);
-			System.out.println(
-					"Kafka event:order updated not sent as either order is not found or it's payment is successfully completed");
-
+//			System.out.println("Kafka event:order updated not sent as either order is not found or it's payment is successfully completed");
+			logger.info("Kafka event:order updated not sent as either order is not found or it's payment is successfully completed");
 		} catch (KafkaProducerException ex) {
-    	    System.out.println("Failed to send message"+ ex.getMessage());
+//    	    System.out.println("Failed to send message"+ ex.getMessage());
+			logger.error("Failed to send message"+ ex.getMessage());
     	    throw new KafkaProducerCustomException("Unable to publish message due to reason:"+ex.getMessage());
         }
 

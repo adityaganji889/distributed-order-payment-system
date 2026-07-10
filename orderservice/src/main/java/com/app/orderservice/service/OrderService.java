@@ -20,7 +20,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import feign.RetryableException;
 
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class OrderService {
@@ -36,10 +37,13 @@ public class OrderService {
 	
 	@Autowired
     private PaymentFeignClient paymentFeignClient;
+	
+	private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
 	@KafkaListener(topics = { "${app.kafka.order-created.topic}", "${app.kafka.order-updated.topic}" }, groupId = "${spring.kafka.consumer.group-id}")
 	public void consumeOrder(String payment) throws JsonMappingException, JsonProcessingException {
-		System.out.println("Received payment: " + payment);
+//		System.out.println("Received payment: " + payment);
+		logger.info("Received payment: " + payment);
 //		String[] arr = payment.split(",");
 		Payment paymentResponse = mapper.readValue(payment,Payment.class);
 		try {
@@ -47,21 +51,26 @@ public class OrderService {
 			    String orderId = paymentResponse.getOrderId();
 			    String status = paymentResponse.getStatus();
 			    OrderDO fetchedOrderDo = repo.findByOrderId(orderId);
-				System.out.println(fetchedOrderDo);
+//				System.out.println(fetchedOrderDo);
+			    logger.info(fetchedOrderDo.toString());
 //				fetchedOrderDo.setStatus(arr[1]);
 				fetchedOrderDo.setStatus(paymentResponse.getStatus());
 				repo.save(fetchedOrderDo);
 				if(status.equals("Failed")) {
-					System.out.println("Payment Failed for order id:"+orderId);
+//					System.out.println("Payment Failed for order id:"+orderId);
+					logger.info("Payment Failed for order id:"+orderId);
 				}
 				if(status.equals("Success")) {
-					System.out.println("Payment Successful for order id:"+orderId);
+//					System.out.println("Payment Successful for order id:"+orderId);
+					logger.info("Payment Successful for order id:"+orderId);
 				}
 				if(status.equals("Pending")) {
-					System.out.println("Payment Pending for order id:"+orderId);
+//					System.out.println("Payment Pending for order id:"+orderId);
+					logger.info("Payment Pending for order id:"+orderId);
 				}
 		} catch (ListenerExecutionFailedException e) {
-			System.out.println("Exception occured:" + e.getMessage());
+//			System.out.println("Exception occured:" + e.getMessage());
+			logger.error("Exception occured:" + e.getMessage());
 			throw new KafkaConsumerCustomException(e.getMessage());
 		}
 	}
@@ -76,7 +85,8 @@ public class OrderService {
 		orderDo.setPaymentAmount(order.getPaymentAmount());
 		orderDo.setStatus("Pending");
 		repo.save(orderDo);
-		System.out.println("Order saved successfully.");
+//		System.out.println("Order saved successfully");
+		logger.info("Order saved successfully");
 //		String url = "http://localhost:8083/payments/process?payment=" + order.toString();
 //		restTemplate.getForObject(url, String.class);
 		//Feign Client Changes starts
